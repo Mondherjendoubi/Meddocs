@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: 'pgvector/pgvector:pg16'
+    environment:
+      # Values come from .env (gitignored). No secrets are committed here.
+      - 'POSTGRES_DB=${POSTGRES_DB}'
+      - 'POSTGRES_PASSWORD=${POSTGRES_PASSWORD}'
+      - 'POSTGRES_USER=${POSTGRES_USER}'
+    ports:
+      - '5432:5432'
+    volumes:
+      - 'meddocs-pgdata:/var/lib/postgresql/data'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build: .
+    # Kept out of the default set so `docker compose up` (and Spring Boot's
+    # docker-compose dev integration) start only the DB. Run the full stack with:
+    #   docker compose --profile app up --build
+    profiles: ['app']
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Inside the container the DB is reached by its SERVICE NAME, not localhost.
+      - 'SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB}'
+      - 'SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}'
+      - 'SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}'
+      # Don't let the app try to manage compose from inside a container.
+      - 'SPRING_DOCKER_COMPOSE_ENABLED=false'
+    ports:
+      - '8080:8080'
+
+volumes:
+  meddocs-pgdata:
