@@ -11,12 +11,18 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "documents")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // required by JPA, not for app code
 public class Document {
 
 	@Id
@@ -24,22 +30,27 @@ public class Document {
 	private Long id;
 
 	/** Owner of this document — drives per-user isolation in retrieval (Stage 4). */
+	@Setter
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
 
 	/** Human-friendly citation label; defaults to the filename if blank. */
+	@Setter
 	@Column(name = "source_label", nullable = false)
 	private String sourceLabel;
 
+	@Setter
 	@Column(name = "filename")
 	private String filename;
 
+	@Setter
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 32)
 	private DocumentStatus status = DocumentStatus.PENDING;
 
 	/** Populated only when status == FAILED. */
+	@Setter
 	@Column(name = "failure_reason")
 	private String failureReason;
 
@@ -47,60 +58,9 @@ public class Document {
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
-	protected Document() {
-	}
-
 	public Document(User user, String sourceLabel, String filename) {
 		this.user = user;
 		this.sourceLabel = sourceLabel;
 		this.filename = filename;
-	}
-
-	public Long getId() {
-		return id;
-	}
-
-	public User getUser() {
-		return user;
-	}
-
-	public void setUser(User user) {
-		this.user = user;
-	}
-
-	public String getSourceLabel() {
-		return sourceLabel;
-	}
-
-	public void setSourceLabel(String sourceLabel) {
-		this.sourceLabel = sourceLabel;
-	}
-
-	public String getFilename() {
-		return filename;
-	}
-
-	public void setFilename(String filename) {
-		this.filename = filename;
-	}
-
-	public DocumentStatus getStatus() {
-		return status;
-	}
-
-	public void setStatus(DocumentStatus status) {
-		this.status = status;
-	}
-
-	public String getFailureReason() {
-		return failureReason;
-	}
-
-	public void setFailureReason(String failureReason) {
-		this.failureReason = failureReason;
-	}
-
-	public Instant getCreatedAt() {
-		return createdAt;
 	}
 }

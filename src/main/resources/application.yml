@@ -2,9 +2,11 @@ spring:
   application:
     name: meddocs
 
-  # --- Datasource (matches compose.yaml) ---
+  # --- Datasource (matches compose.yaml's published port 5433) ---
+  # The pgvector container is published on host 5433 to avoid a clash with a native
+  # PostgreSQL on 5432. The app container overrides this via SPRING_DATASOURCE_URL.
   datasource:
-    url: jdbc:postgresql://localhost:5432/mydatabase
+    url: jdbc:postgresql://localhost:5433/mydatabase
     username: myuser
     password: secret
 
@@ -19,3 +21,13 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+# --- App config (Stage 2: JWT auth) ---
+meddocs:
+  jwt:
+    # HMAC signing secret. MUST be >= 32 bytes for HS256. Real value comes from the
+    # JWT_SECRET env var; the inline fallback is dev-only and must never ship to prod.
+    secret: ${JWT_SECRET:dev-only-insecure-secret-change-me-min-32-bytes-0123456789}
+    # Token lifetime in milliseconds (3600000 = 1 hour). Short expiry, no refresh token
+    # (a deliberate demo-simplicity trade-off — see ROADMAP §Stage 2).
+    expiration-ms: 3600000

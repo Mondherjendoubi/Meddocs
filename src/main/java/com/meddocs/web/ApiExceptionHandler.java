@@ -1,0 +1,44 @@
+package com.meddocs.web;
+
+import com.meddocs.auth.EmailAlreadyUsedException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.stream.Collectors;
+
+/**
+ * Translates exceptions into RFC 9457 {@link ProblemDetail} responses with the right
+ * status, so failures aren't leaked as 500s or stack traces.
+ */
+@RestControllerAdvice
+public class ApiExceptionHandler {
+
+	/** Duplicate registration → 409 Conflict. */
+	@ExceptionHandler(EmailAlreadyUsedException.class)
+	public ProblemDetail handleEmailAlreadyUsed(EmailAlreadyUsedException ex) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+	}
+
+	/**
+	 * Wrong email or password → 401 Unauthorized. Both unknown-user and bad-password
+	 * map to the same generic message so we don't reveal which emails exist.
+	 */
+	@ExceptionHandler({BadCredentialsException.class, UsernameNotFoundException.class})
+	public ProblemDetail handleBadCredentials(RuntimeException ex) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Invalid email or password");
+	}
+
+	/** Bean-validation failures (@Valid) → 400 with a field-by-field summary. */
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
+		String detail = ex.getBindingResult().getFieldErrors().stream()
+				.map(error -> error.getField() + ": " + error.getDefaultMessage())
+				.collect(Collectors.joining("; "));
+		return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+	}
+}

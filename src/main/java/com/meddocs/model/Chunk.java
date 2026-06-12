@@ -10,6 +10,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.Array;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -19,24 +23,30 @@ import org.hibernate.type.SqlTypes;
 	name = "chunks",
 	uniqueConstraints = @UniqueConstraint(columnNames = {"document_id", "chunk_index"})
 )
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // required by JPA, not for app code
 public class Chunk {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
+	@Setter
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "document_id", nullable = false)
 	private Document document;
 
 	/** 0-based position of this chunk within its document. */
+	@Setter
 	@Column(name = "chunk_index", nullable = false)
 	private int chunkIndex;
 
+	@Setter
 	@Column(nullable = false, columnDefinition = "text")
 	private String content;
 
 	/** Optional locator within the source (e.g. "p. 4", "§2.1"). */
+	@Setter
 	@Column(name = "section_ref")
 	private String sectionRef;
 
@@ -44,63 +54,17 @@ public class Chunk {
 	 * The embedding for {@link #content}, fixed at 384 dims (all-MiniLM-L6-v2).
 	 * Mapped to the pgvector vector(384) column via hibernate-vector.
 	 */
+	@Setter
 	@JdbcTypeCode(SqlTypes.VECTOR)
 	@Array(length = 384)
 	@Column(name = "embedding")
 	private float[] embedding;
-
-	protected Chunk() {
-	}
 
 	public Chunk(Document document, int chunkIndex, String content, String sectionRef, float[] embedding) {
 		this.document = document;
 		this.chunkIndex = chunkIndex;
 		this.content = content;
 		this.sectionRef = sectionRef;
-		this.embedding = embedding;
-	}
-
-	public Long getId() {
-		return id;
-	}
-
-	public Document getDocument() {
-		return document;
-	}
-
-	public void setDocument(Document document) {
-		this.document = document;
-	}
-
-	public int getChunkIndex() {
-		return chunkIndex;
-	}
-
-	public void setChunkIndex(int chunkIndex) {
-		this.chunkIndex = chunkIndex;
-	}
-
-	public String getContent() {
-		return content;
-	}
-
-	public void setContent(String content) {
-		this.content = content;
-	}
-
-	public String getSectionRef() {
-		return sectionRef;
-	}
-
-	public void setSectionRef(String sectionRef) {
-		this.sectionRef = sectionRef;
-	}
-
-	public float[] getEmbedding() {
-		return embedding;
-	}
-
-	public void setEmbedding(float[] embedding) {
 		this.embedding = embedding;
 	}
 }
