@@ -1,6 +1,7 @@
 package com.meddocs.web;
 
 import com.meddocs.auth.EmailAlreadyUsedException;
+import com.meddocs.ingest.InvalidUploadException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -8,6 +9,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.stream.Collectors;
 
@@ -40,5 +42,17 @@ public class ApiExceptionHandler {
 				.map(error -> error.getField() + ": " + error.getDefaultMessage())
 				.collect(Collectors.joining("; "));
 		return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+	}
+
+	/** Rejected upload (empty, too large, or unsupported type) → 400. */
+	@ExceptionHandler(InvalidUploadException.class)
+	public ProblemDetail handleInvalidUpload(InvalidUploadException ex) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+	}
+
+	/** Multipart body over the configured limit → 413 Payload Too Large. */
+	@ExceptionHandler(MaxUploadSizeExceededException.class)
+	public ProblemDetail handleMaxUploadSize(MaxUploadSizeExceededException ex) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.PAYLOAD_TOO_LARGE, "Upload exceeds the maximum allowed size");
 	}
 }

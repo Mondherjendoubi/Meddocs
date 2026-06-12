@@ -22,6 +22,12 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  # --- Multipart uploads (Stage 3) ---
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
+
 # --- App config (Stage 2: JWT auth) ---
 meddocs:
   jwt:
@@ -31,3 +37,14 @@ meddocs:
     # Token lifetime in milliseconds (3600000 = 1 hour). Short expiry, no refresh token
     # (a deliberate demo-simplicity trade-off — see ROADMAP §Stage 2).
     expiration-ms: 3600000
+
+  # --- Ingestion pipeline (Stage 3) ---
+  ingest:
+    # Character-based chunking (~4 chars/token): ~800 tokens with ~100 overlap.
+    chunk-size: 3200
+    chunk-overlap: 400
+    max-file-size-bytes: 10485760   # 10 MB
+    allowed-content-types:
+      - application/pdf
+      - text/plain
+      - text/markdown
