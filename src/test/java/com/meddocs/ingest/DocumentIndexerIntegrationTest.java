@@ -1,5 +1,6 @@
 package com.meddocs.ingest;
 
+import com.meddocs.TestcontainersConfiguration;
 import com.meddocs.model.Document;
 import com.meddocs.model.DocumentStatus;
 import com.meddocs.model.User;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -25,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * as in production, so we clean up created rows by hand.
  */
 @SpringBootTest
+@Import(TestcontainersConfiguration.class)
 class DocumentIndexerIntegrationTest {
 
 	@Autowired
