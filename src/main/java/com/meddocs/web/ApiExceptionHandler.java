@@ -2,6 +2,9 @@ package com.meddocs.web;
 
 import com.meddocs.auth.EmailAlreadyUsedException;
 import com.meddocs.ingest.InvalidUploadException;
+import com.meddocs.rag.RagException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -19,6 +22,8 @@ import java.util.stream.Collectors;
  */
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+	private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
 	/** Duplicate registration → 409 Conflict. */
 	@ExceptionHandler(EmailAlreadyUsedException.class)
@@ -54,5 +59,15 @@ public class ApiExceptionHandler {
 	@ExceptionHandler(MaxUploadSizeExceededException.class)
 	public ProblemDetail handleMaxUploadSize(MaxUploadSizeExceededException ex) {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.PAYLOAD_TOO_LARGE, "Upload exceeds the maximum allowed size");
+	}
+
+	/** A downstream RAG dependency (retrieval or the chat model) failed → 503 Service Unavailable. */
+	@ExceptionHandler(RagException.class)
+	public ProblemDetail handleRagFailure(RagException ex) {
+		// The client only sees a generic 503; log the wrapped cause so retrieval/LLM
+		// failures stay observable on the server side.
+		log.error("RAG query failed", ex);
+		return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+				"The question service is temporarily unavailable");
 	}
 }

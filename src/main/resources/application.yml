@@ -48,3 +48,14 @@ meddocs:
       - application/pdf
       - text/plain
       - text/markdown
+
+  # --- RAG core (Stage 4) ---
+  rag:
+    top-k: 4
+    similarity-threshold: 0.75
+    snippet-max-chars: 320
+    refusal-message: >-
+      I don't have enough information in your documents to answer that.
+
+  # Chat model selection: 'fake' (Stage 4 stand-in). Stage 5 swaps in a real local LLM (Ollama).
+  chat: fake
