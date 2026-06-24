@@ -57,5 +57,15 @@ meddocs:
     refusal-message: >-
       I don't have enough information in your documents to answer that.
 
-  # Chat model selection: 'fake' (Stage 4 stand-in). Stage 5 swaps in a real local LLM (Ollama).
-  chat: fake
+  # Provider selection. Default to the deterministic fakes so tests/CI need no Ollama or
+  # model download. Set to 'ollama' to use the real local providers (Stage 5).
+  chat: fake       # 'fake' (Stage 4 stand-in) | 'ollama' (local LLM)
+  embedder: fake   # 'fake' (deterministic) | 'ollama' (all-minilm)
+
+  # --- Local Ollama providers (Stage 5) ---
+  ollama:
+    base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+    chat-model: ${OLLAMA_MODEL:llama3.1:latest}
+    embed-model: all-minilm
+    connect-timeout: 5s
+    read-timeout: 60s

@@ -2,6 +2,7 @@ package com.meddocs.web;
 
 import com.meddocs.auth.EmailAlreadyUsedException;
 import com.meddocs.ingest.InvalidUploadException;
+import com.meddocs.ingest.ReindexException;
 import com.meddocs.rag.RagException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,5 +70,15 @@ public class ApiExceptionHandler {
 		log.error("RAG query failed", ex);
 		return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
 				"The question service is temporarily unavailable");
+	}
+
+	/** Re-embedding failed because a downstream dependency (the embedder) errored → 503. */
+	@ExceptionHandler(ReindexException.class)
+	public ProblemDetail handleReindexFailure(ReindexException ex) {
+		// Client sees a generic 503; the wrapped cause was already logged at the service, but
+		// log here too so the HTTP-boundary failure stays observable.
+		log.error("Reindex failed", ex);
+		return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+				"The reindex service is temporarily unavailable");
 	}
 }

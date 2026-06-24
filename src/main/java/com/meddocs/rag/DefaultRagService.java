@@ -32,9 +32,18 @@ public class DefaultRagService implements RagService {
 
 	@Override
 	public QueryResponse answer(User user, String question) {
+		float[] queryVector;
+		try {
+			// Embedder is our own interface with no checked exceptions. The Ollama impl throws
+			// IO/HTTP/IllegalState RuntimeExceptions, so wrap RuntimeException — but only around
+			// this single downstream call, so a programming bug elsewhere still surfaces as 500.
+			queryVector = embedder.embed(question);
+		} catch (RuntimeException ex) {
+			throw new RagException("Query embedding failed", ex);
+		}
+
 		List<VectorSearchResult> hits;
 		try {
-			float[] queryVector = embedder.embed(question);
 			String queryLiteral = EmbeddingFormat.toPgVectorLiteral(queryVector);
 			hits = vectorSearchRepository.search(user.getId(), queryLiteral, properties.topK());
 		} catch (DataAccessException ex) {

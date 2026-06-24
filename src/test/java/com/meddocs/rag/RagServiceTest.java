@@ -11,6 +11,7 @@ import org.mockito.ArgumentCaptor;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -118,5 +119,33 @@ class RagServiceTest {
 		assertThat(source.sectionRef()).isEqualTo("§3");
 		assertThat(source.score()).isEqualTo(0.88);
 		assertThat(source.snippet()).hasSize(SNIPPET_MAX);
+	}
+
+	@Test
+	void embedderFailure_isWrappedAsRagException() {
+		// The Ollama embedder throws IO/HTTP/IllegalState RuntimeExceptions; the query embed call
+		// must surface as a RagException (mapped to HTTP 503), never call retrieval or the chat model.
+		when(embedder.embed(anyString())).thenThrow(new IllegalStateException("ollama embed down"));
+
+		assertThatThrownBy(() -> service.answer(user, "anything"))
+				.isInstanceOf(RagException.class)
+				.hasCauseInstanceOf(IllegalStateException.class);
+
+		verify(searchRepository, never()).search(any(), anyString(), anyInt());
+		verify(chatModel, never()).generate(any(), any());
+	}
+
+	@Test
+	void chatModelFailure_aboveThreshold_isWrappedAsRagException() {
+		// Strong grounding clears the refusal gate, so the chat model is called — and its failure
+		// must be wrapped as a RagException (HTTP 503), not leak as a raw 500.
+		VectorSearchResult hit = new VectorSearchResult(
+				11L, 7L, "summary.pdf", "p. 1", "grounded content", 0.95);
+		when(searchRepository.search(nullable(Long.class), anyString(), anyInt())).thenReturn(List.of(hit));
+		when(chatModel.generate(anyString(), anyString())).thenThrow(new IllegalStateException("ollama chat down"));
+
+		assertThatThrownBy(() -> service.answer(user, "question"))
+				.isInstanceOf(RagException.class)
+				.hasCauseInstanceOf(IllegalStateException.class);
 	}
 }
